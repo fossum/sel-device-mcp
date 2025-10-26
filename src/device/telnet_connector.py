@@ -1,5 +1,6 @@
 from src.device.connector import Connector
 
+
 class TelnetConnector(Connector):
     def connect(self):
         # TODO: Implement Telnet connection logic
