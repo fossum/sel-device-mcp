@@ -22,18 +22,21 @@ An MCP (Model Context Protocol) server to allow AI intelligent access to Schweit
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/fossum/sel-device-mcp.git
 cd sel-device-mcp
 ```
 
-2. Create and activate a virtual environment:
+1. Create and activate a virtual environment:
+
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
 ```
 
-3. Install dependencies:
+1. Install dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -41,11 +44,13 @@ pip install -r requirements.txt
 ### Usage
 
 1. Start the MCP server:
+
 ```bash
 python src/server/main.py
 ```
 
-2. Connect to a device:
+1. Connect to a device:
+
 ```python
 from src.device.serial_connector import SerialConnector
 from src.core.mcp import MCP
@@ -61,7 +66,6 @@ try:
 finally:
     mcp.disconnect()
 ```
-
 
 ## Contributing
 
