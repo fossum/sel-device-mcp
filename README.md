@@ -5,6 +5,7 @@ An MCP (Model Context Protocol) server to allow AI intelligent access to Schweit
 ## Features
 
 - **Serial Communication**: Full support for COM port connections (default: COM5)
+- **Known Device Connections**: Pre-configured device profiles for easy connection
 - **REST API Interface**: FastAPI-based server with comprehensive endpoints
 - **SEL Device Support**: Pre-configured for SEL device prompts and protocols
 - **Real-time Connection Management**: Connect, disconnect, and monitor device status
@@ -15,10 +16,24 @@ An MCP (Model Context Protocol) server to allow AI intelligent access to Schweit
 
 ## API Endpoints
 
+### Basic Connection
+
 - `POST /connect` - Connect to a serial device (default: COM5, 9600 baud)
 - `POST /disconnect` - Disconnect from the current device
 - `POST /command` - Send commands to connected device
 - `GET /status` - Check current connection status
+
+### Known Connections
+
+- `GET /connections` - List all known device connections
+- `GET /connections/{connection_id}` - Get details for a specific known connection
+- `POST /connect/by-id` - Connect using a known connection ID
+- `POST /connect/default` - Connect to the default known connection
+- `GET /connections/by-type/{device_type}` - List connections by device type
+- `GET /connections/by-port/{port}` - List connections by port
+
+### General
+
 - `GET /` - Server health check
 - `GET /docs` - Interactive API documentation
 

@@ -1,5 +1,4 @@
 import logging
-import re
 from typing import Optional
 
 from sel.aft.streams import SerialStream
@@ -7,26 +6,20 @@ from sel.aft.streams import SerialStream
 from sel.aft_shared.protocols.sel_ascii import SelAscii
 
 from src.device.connector import (
-    Connector, SerialConnectionError, SerialTimeoutError
+    Connector
 )
 
 
 class SerialConnector(Connector):
-    # Common SEL device prompts
-    DEFAULT_PROMPTS = [
-        r'=>\s*$',  # SEL-protocol prompt
-        r'>\s*$',   # Basic prompt
-    ]
+    """Connector for serial port communication."""
+
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 10,
-                 prompts: Optional[list[str]] = None):
+    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 10):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial = None
-        self.prompts = prompts if prompts is not None else self.DEFAULT_PROMPTS
-        self._prompt_pattern = re.compile('|'.join(self.prompts))
 
     def connect(self) -> bool:
         self.serial = SerialStream(
@@ -49,7 +42,13 @@ class SerialConnector(Connector):
         if not self.serial or not self.serial.is_open:
             error_msg = "Cannot send command - serial port is not connected"
             SerialConnector._logger.error(error_msg)
-            raise SerialConnectionError(error_msg)
+            raise ConnectionError(error_msg)
+
+        # Use default timeout if none provided, convert to milliseconds
+        if timeout is None:
+            timeout_ms = None  # Let protocol use its default
+        else:
+            timeout_ms = int(timeout * 1000)
 
         # Clear any pending input.
         self.serial.listen(wait_time=50)
@@ -57,7 +56,7 @@ class SerialConnector(Connector):
         # Send the command
         protocol = SelAscii(self.serial)
         SerialConnector._logger.debug(f"Sending command: {command.strip()}")
-        resp = protocol.send(command)
+        resp = protocol.send(command, read_timeout=timeout_ms)
         SerialConnector._logger.debug(f"Received response: {resp.strip()}")
 
         return resp

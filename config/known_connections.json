@@ -1,0 +1,128 @@
+{
+    "known_connections": {
+        "sel_2411": {
+            "name": "SEL 2411 - AFT Device",
+            "description": "A programmable automation controller used for testing.",
+            "host": "10.39.86.231",
+            "port": "23",
+            "timeout": 10.0,
+            "device_type": "SEL_RELAY",
+            "model": "SEL-2411",
+            "location": "Unknown",
+            "common_commands": [
+                "ID",
+                "STATUS",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        },
+        "sel_421_aft": {
+            "name": "SEL 421 - AFT Serial Device",
+            "description": "A protection, automation, and control system device for two-way breakers.",
+            "port": "COM5",
+            "baudrate": 9600,
+            "timeout": 15.0,
+            "device_type": "SEL_METER",
+            "model": "SEL-421",
+            "location": "Eric's Rack",
+            "common_commands": [
+                "ID",
+                "METER",
+                "STATUS",
+                "DATE",
+                "TIME",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        },
+        "sel_2730m": {
+            "name": "SEL 2730M - AFT Device",
+            "description": "A managed 24-port ethernet switch used for testing.",
+            "host": "10.39.86.233",
+            "port": "23",
+            "timeout": 10.0,
+            "device_type": "SEL_RELAY",
+            "model": "SEL-2730M",
+            "location": "Eric's Rack",
+            "common_commands": [
+                "ID",
+                "STATUS",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        },
+        "sel_411l_1": {
+            "name": "SEL 411L - AFT Device",
+            "description": "A line current differential relay used for testing.",
+            "host": "10.39.86.234",
+            "port": "23",
+            "timeout": 10.0,
+            "device_type": "SEL_RELAY",
+            "model": "SEL-411L",
+            "location": "Eric's Rack",
+            "common_commands": [
+                "ID",
+                "MET",
+                "STATUS",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        },
+        "sel_851": {
+            "name": "SEL 851 - AFT Device",
+            "description": "A feeder protection relay used for testing.",
+            "host": "10.39.86.233",
+            "port": "23",
+            "timeout": 10.0,
+            "device_type": "SEL_RELAY",
+            "model": "SEL-851",
+            "location": "Unknown",
+            "common_commands": [
+                "ID",
+                "STATUS",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        },
+        "sel_9l": {
+            "name": "SEL 9L - AFT Device",
+            "description": "A line relay used for testing.",
+            "host": "10.39.86.215",
+            "port": "23",
+            "timeout": 10.0,
+            "device_type": "SEL_RELAY",
+            "model": "SEL-9L",
+            "location": "Austin's Rack",
+            "common_commands": [
+                "ID",
+                "STATUS",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        },
+        "sel_t400l": {
+            "name": "SEL T400L - AFT Device",
+            "description": "A transformer relay used for testing.",
+            "host": "10.39.86.235",
+            "port": "23",
+            "timeout": 10.0,
+            "device_type": "SEL_RELAY",
+            "model": "SEL-T400L",
+            "location": "Eric's Rack",
+            "common_commands": [
+                "ID",
+                "STATUS",
+                "ACC",
+                "2AC",
+                "QUIT"
+            ]
+        }
+    },
+    "default_connection": "test_device"
+}

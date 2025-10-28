@@ -2,13 +2,13 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 
-class SerialConnectionError(Exception):
-    """Raised when serial port connection fails"""
+class ConnectionError(Exception):
+    """Exception raised when connection operations fail."""
     pass
 
 
-class SerialTimeoutError(Exception):
-    """Raised when a serial operation times out"""
+class TimeoutError(Exception):
+    """Exception raised when operations timeout."""
     pass
 
 
@@ -30,7 +30,6 @@ class Connector(ABC):
         Raises:
             ConnectionError: If connection attempt fails.
         """
-        pass
 
     @abstractmethod
     def disconnect(self) -> None:
@@ -40,7 +39,6 @@ class Connector(ABC):
         connection. It should not raise exceptions even if the connection is
         already closed.
         """
-        pass
 
     @abstractmethod
     def send_command(
@@ -61,4 +59,3 @@ class Connector(ABC):
             TimeoutError: If the device does not respond within the timeout
                 period.
         """
-        pass
