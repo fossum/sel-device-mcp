@@ -3,4 +3,4 @@ uvicorn
 python-dotenv
 aft-shared
 mcp
-pyserial
+httpx>=0.25.0

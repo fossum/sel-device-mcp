@@ -1,0 +1,10 @@
+{
+	"servers": {
+		"sel-mcp-device-server": {
+			"command": "C:/development/ericfoss/sel-device-mcp/.venv/Scripts/python.exe",
+			"args": ["-m", "src.mcp_server.server"],
+			"cwd": "c:\\development\\ericfoss\\sel-device-mcp"
+		}
+	},
+	"inputs": []
+}

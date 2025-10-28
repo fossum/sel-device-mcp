@@ -1,0 +1,9 @@
+{
+  "sel-device-mcp": {
+    "command": "python",
+    "args": ["c:/development/ericfoss/sel-device-mcp/start_mcp_server.py"],
+    "env": {
+      "PYTHONPATH": "c:/development/ericfoss/sel-device-mcp/src"
+    }
+  }
+}
