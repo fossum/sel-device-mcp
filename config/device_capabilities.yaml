@@ -1,0 +1,265 @@
+# SEL Device Capabilities Database
+# This file contains comprehensive information about SEL device models,
+# their capabilities, commands, and testing features.
+
+# Shared capability definitions using YAML anchors
+shared_capabilities:
+  # Common access levels
+  standard_access_levels: &standard_access_levels
+    "0": "No access"
+    "1": "Monitor relay functions"
+    "2": "Full control"
+
+  controller_access_levels: &controller_access_levels
+    "0": "No access"
+    "1": "Monitor functions"
+    "2": "Full control"
+
+  # Common IP configuration
+  standard_ip_config: &standard_ip_config
+    supported: true
+    commands:
+      - "SET IP"
+      - "SET SUBNET"
+      - "SET GATEWAY"
+      - "SET DHCP"
+
+  no_ip_config: &no_ip_config
+    supported: false
+    note: "Serial connection device"
+
+device_capabilities:
+  SEL-411L:
+    type: "Line Current Differential Relay"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      - "DATE"
+      - "TIME"
+      # Protection relay commands
+      - "METER"
+      - "EVENT"
+      - "HISTORY"
+      # Network commands
+      - "ETHERNET"
+      # Device-specific commands
+      - "IRIG"
+      - "GOOSE"
+      - "DNP"
+      - "VERSION"
+      - "TRIGGER"
+      - "SER"
+      - "PROFILE"
+    access_levels:
+      <<: *standard_access_levels
+      "A": "Automation commands"
+      "B": "Monitor and control circuit breakers"
+      "O": "Output"
+      "P": "Protection"
+    ip_configuration:
+      <<: *standard_ip_config
+    testing_capabilities:
+      - "Protection testing"
+      - "Current differential"
+      - "Communication testing"
+
+  SEL-2411:
+    type: "Programmable Automation Controller"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      - "DATE"
+      - "TIME"
+      # Network commands
+      - "ETHERNET"
+      # Controller-specific commands
+      - "LOGIC"
+      - "CONTROL"
+    access_levels:
+      <<: *controller_access_levels
+    ip_configuration:
+      <<: *standard_ip_config
+    testing_capabilities:
+      - "Logic testing"
+      - "I/O testing"
+      - "Communication testing"
+
+  SEL-421:
+    type: "Protection, Automation, and Control System"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      - "DATE"
+      - "TIME"
+      # Protection relay commands
+      - "METER"
+      - "EVENT"
+      - "HISTORY"
+      # Device-specific commands
+      - "BREAKER"
+    access_levels:
+      <<: *standard_access_levels
+      "B": "Monitor and control circuit breakers"
+    ip_configuration:
+      <<: *no_ip_config
+    testing_capabilities:
+      - "Protection testing"
+      - "Breaker control"
+      - "Metering verification"
+
+  SEL-2730M:
+    type: "Managed 24-port Ethernet Switch"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      # Network commands
+      - "ETHERNET"
+      # Switch-specific commands
+      - "PORT"
+      - "VLAN"
+    access_levels:
+      <<: *controller_access_levels
+    ip_configuration:
+      <<: *standard_ip_config
+    testing_capabilities:
+      - "Network testing"
+      - "Port configuration"
+      - "VLAN testing"
+
+  SEL-851:
+    type: "Feeder Protection Relay"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      # Protection relay commands
+      - "METER"
+      - "EVENT"
+      - "HISTORY"
+    access_levels:
+      <<: *standard_access_levels
+    ip_configuration:
+      <<: *standard_ip_config
+    testing_capabilities:
+      - "Protection testing"
+      - "Feeder monitoring"
+      - "Communication testing"
+
+  SEL-9L:
+    type: "Line Relay"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      # Protection relay commands
+      - "METER"
+      - "EVENT"
+      - "HISTORY"
+    access_levels:
+      <<: *standard_access_levels
+    ip_configuration:
+      <<: *standard_ip_config
+    testing_capabilities:
+      - "Protection testing"
+      - "Line monitoring"
+      - "Communication testing"
+
+  SEL-T400L:
+    type: "Transformer Relay"
+    commands:
+      # Core commands
+      - "ID"
+      - "ACC"
+      - "2ACCESS"
+      - "STATUS"
+      - "SHOW"
+      - "SET"
+      - "SAVE"
+      # Protection relay commands
+      - "METER"
+      - "EVENT"
+      - "HISTORY"
+    access_levels:
+      <<: *standard_access_levels
+    ip_configuration:
+      <<: *standard_ip_config
+    testing_capabilities:
+      - "Protection testing"
+      - "Transformer monitoring"
+      - "Communication testing"
+
+# AFT (Automated Functional Testing) Capabilities
+aft_capabilities:
+  ams_functions:
+    - "execute_test_wait_for_finish"
+    - "execute_test_return"
+    - "abort_running_test"
+    - "send_new_test_file_xmodem"
+    - "get_input_states"
+    - "close_output_contact"
+    - "open_output_contacts"
+    - "set_analog_output_voltage"
+    - "perform_self_test"
+    - "get_firmware_revision"
+    - "start_monitoring_inputs"
+    - "stop_monitoring_inputs"
+    - "wait_for_finish"
+    - "is_running"
+    - "run_eeprom_test"
+
+  supported_test_types:
+    - "Protection relay testing"
+    - "Current differential testing"
+    - "I/O verification"
+    - "Communication testing"
+    - "Timing verification"
+    - "Logic testing"
+    - "Network testing"
+    - "GOOSE testing"
+    - "DNP testing"
+
+  test_file_formats:
+    - "RTP"
+    - "XML"
+    - "CSV"
+
+  protocols_supported:
+    - "DNP3"
+    - "GOOSE"
+    - "Modbus"
+    - "IEC 61850"
+    - "Serial communications"

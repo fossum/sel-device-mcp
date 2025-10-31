@@ -1,11 +1,14 @@
 """
 MCP Server implementation for SEL device communication.
 This implements the Model Context Protocol for use with AI assistants.
+Enhanced with device capabilities and AFT integration.
 """
 
 import json
 import logging
-from typing import Any, Dict
+import yaml
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 from mcp.server import Server, NotificationOptions
 from mcp.server.models import InitializationOptions
@@ -32,13 +35,55 @@ logger = logging.getLogger(__name__)
 # Global connection state
 current_connection = None
 
+
+def load_device_capabilities() -> Dict[str, Any]:
+    """Load device capabilities from YAML configuration file."""
+    try:
+        capabilities_file = Path(__file__).parent.parent.parent / "config" / "device_capabilities.yaml"
+        with open(capabilities_file, 'r') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logger.warning(f"Could not load device capabilities: {e}")
+        return {"device_capabilities": {}, "aft_capabilities": {}}
+
+
+# Load capabilities at startup
+CAPABILITIES = load_device_capabilities()
+DEVICE_CAPABILITIES = CAPABILITIES.get("device_capabilities", {})
+AFT_CAPABILITIES = CAPABILITIES.get("aft_capabilities", {})
+
 # Create MCP server
 server = Server("sel-device-mcp")
 
 
+def get_device_capabilities(model: str) -> Optional[Dict[str, Any]]:
+    """Get capabilities for a specific device model."""
+    return DEVICE_CAPABILITIES.get(model)
+
+
+def validate_command_for_device(command: str, model: str) -> Dict[str, Any]:
+    """Validate if a command is appropriate for a device model."""
+    capabilities = get_device_capabilities(model)
+    if not capabilities:
+        return {
+            "validated": False,
+            "reason": f"No capabilities found for {model}"
+        }
+
+    command_base = command.split()[0].upper()
+    is_known = command_base in capabilities.get("commands", [])
+
+    return {
+        "validated": True,
+        "is_known_command": is_known,
+        "device_model": model,
+        "command_base": command_base
+    }
+
+
 @server.list_resources()
 async def list_resources() -> ListResourcesResult:
-    """List available resources (known connections)."""
+    """List available resources including device capabilities."""
     resources = []
 
     # Add known connections as resources
@@ -51,6 +96,27 @@ async def list_resources() -> ListResourcesResult:
                 mimeType="application/json"
             )
         )
+
+    # Add device capabilities as resources
+    for model in DEVICE_CAPABILITIES.keys():
+        resources.append(
+            Resource(
+                uri=f"device-capabilities://{model}",
+                name=f"{model} Capabilities",
+                description=f"Commands, access levels, and capabilities for {model}",
+                mimeType="application/json"
+            )
+        )
+
+    # Add AFT capabilities
+    resources.append(
+        Resource(
+            uri="aft://capabilities",
+            name="AFT Testing Capabilities",
+            description="Available AFT (Automated Functional Testing) capabilities",
+            mimeType="application/json"
+        )
+    )
 
     # Add current connection status
     resources.append(
@@ -70,16 +136,41 @@ async def read_resource(uri: str) -> ReadResourceResult:
     """Read a specific resource."""
 
     if uri.startswith("connection://"):
-        # Return connection details
+        # Return connection details with device capabilities
         conn_id = uri.replace("connection://", "")
         conn = connection_manager.get_connection(conn_id)
 
         if not conn:
             raise ValueError(f"Connection '{conn_id}' not found")
 
+        # Enhance with device capabilities if available
+        conn_data = conn.to_dict()
+        if conn.model in DEVICE_CAPABILITIES:
+            conn_data["device_capabilities"] = DEVICE_CAPABILITIES[conn.model]
+
         content = TextContent(
             type="text",
-            text=json.dumps(conn.to_dict(), indent=2)
+            text=json.dumps(conn_data, indent=2)
+        )
+        return ReadResourceResult(contents=[content])
+
+    elif uri.startswith("device-capabilities://"):
+        # Return device capabilities
+        model = uri.replace("device-capabilities://", "")
+        if model not in DEVICE_CAPABILITIES:
+            raise ValueError(f"No capabilities found for device model: {model}")
+
+        content = TextContent(
+            type="text",
+            text=json.dumps(DEVICE_CAPABILITIES[model], indent=2)
+        )
+        return ReadResourceResult(contents=[content])
+
+    elif uri == "aft://capabilities":
+        # Return AFT capabilities
+        content = TextContent(
+            type="text",
+            text=json.dumps(AFT_CAPABILITIES, indent=2)
         )
         return ReadResourceResult(contents=[content])
 
@@ -104,6 +195,12 @@ async def read_resource(uri: str) -> ReadResourceResult:
                     "baudrate": current_connection.baudrate,
                     "timeout": current_connection.timeout
                 }
+
+            # Add device capabilities if available
+            if hasattr(current_connection, '_known_conn') and current_connection._known_conn:
+                model = current_connection._known_conn.model
+                if model in DEVICE_CAPABILITIES:
+                    status["device_capabilities"] = DEVICE_CAPABILITIES[model]
         else:
             status = {
                 "connected": False,
@@ -199,6 +296,48 @@ async def list_tools() -> ListToolsResult:
                 "properties": {},
                 "required": []
             }
+        ),
+        Tool(
+            name="get_device_capabilities",
+            description="Get capabilities and features for a device model",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "model": {
+                        "type": "string",
+                        "description": "Device model (e.g., SEL-411L)"
+                    }
+                },
+                "required": ["model"]
+            }
+        ),
+        Tool(
+            name="authenticate_device",
+            description="Authenticate to device with access level",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "level": {
+                        "type": "string",
+                        "description": "Access level (1, 2, 3, etc.)",
+                        "default": "1"
+                    },
+                    "password": {
+                        "type": "string",
+                        "description": "Password for the access level"
+                    }
+                },
+                "required": []
+            }
+        ),
+        Tool(
+            name="check_aft_availability",
+            description="Check if AFT (Automated Testing) available",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
         )
     ]
 
@@ -214,12 +353,29 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
         if name == "list_connections":
             connections = connection_manager.get_known_connections()
             result = {
-                "connections": {
-                    conn_id: conn.to_dict()
-                    for conn_id, conn in connections.items()
-                },
+                "connections": {},
                 "count": len(connections)
             }
+
+            for conn_id, conn in connections.items():
+                conn_info = conn.to_dict()
+
+                # Add device capabilities summary if available
+                if conn.model in DEVICE_CAPABILITIES:
+                    caps = DEVICE_CAPABILITIES[conn.model]
+                    conn_info["capabilities"] = {
+                        "command_count": len(caps['commands']),
+                        "supports_aft": caps.get('supports_aft', False),
+                        "supports_ip_config": caps.get(
+                            'supports_ip_config',
+                            False
+                        ),
+                        "access_levels": list(
+                            caps.get('access_levels', {}).keys()
+                        )
+                    }
+
+                result["connections"][conn_id] = conn_info
 
             return CallToolResult(
                 content=[TextContent(
@@ -252,6 +408,9 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
             # Connect
             current_connection.connect()
 
+            # Store reference to known connection for device capabilities
+            current_connection._known_conn = known_conn
+
             result = {
                 "status": "connected",
                 "connection_id": connection_id,
@@ -262,6 +421,16 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
                 "model": known_conn.model,
                 "location": known_conn.location
             }
+
+            # Add device capabilities if available
+            if known_conn.model in DEVICE_CAPABILITIES:
+                caps = DEVICE_CAPABILITIES[known_conn.model]
+                result["device_capabilities"] = {
+                    "command_count": len(caps['commands']),
+                    "supports_aft": caps.get('supports_aft', False),
+                    "supports_ip_config": caps.get('supports_ip_config', False),
+                    "access_levels": list(caps.get('access_levels', {}).keys())
+                }
 
             logger.info(f"Connected to {known_conn.name}")
 
@@ -274,10 +443,16 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
 
         elif name == "disconnect_device":
             if not current_connection:
-                result = {"status": "no_connection", "message": "No active connection"}
+                result = {
+                    "status": "no_connection",
+                    "message": "No active connection"
+                }
             else:
-                connection_info = getattr(current_connection, 'port',
-                                        f"{current_connection.host}:{current_connection.port}")
+                connection_info = getattr(
+                    current_connection,
+                    'port',
+                    f"{current_connection.host}:{current_connection.port}"
+                )
                 current_connection.disconnect()
                 current_connection = None
                 result = {
@@ -295,10 +470,25 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
 
         elif name == "send_command":
             if not current_connection:
-                raise ConnectionError("No active connection. Please connect first.")
+                raise ConnectionError(
+                    "No active connection. Please connect first."
+                )
 
             command = arguments["command"]
             timeout = arguments.get("timeout", 10.0)
+
+            # Validate command if we have device capabilities
+            if hasattr(current_connection, '_known_conn'):
+                conn = current_connection._known_conn
+                validation_result = validate_command_for_device(
+                    command,
+                    conn.model
+                )
+                if not validation_result["validated"]:
+                    logger.warning(
+                        "Command validation warning: "
+                        + str(validation_result['reason'])
+                    )
 
             response = current_connection.send_command(command, timeout)
 
@@ -336,11 +526,31 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
                         "baudrate": current_connection.baudrate,
                         "timeout": current_connection.timeout
                     }
+
+                # Add device capabilities if available
+                if hasattr(current_connection, '_known_conn'):
+                    conn = current_connection._known_conn
+                    result.update({
+                        "device_name": conn.name,
+                        "device_model": conn.model
+                    })
+                    if conn.model in DEVICE_CAPABILITIES:
+                        caps = DEVICE_CAPABILITIES[conn.model]
+                        result["device_capabilities"] = {
+                            "command_count": len(caps['commands']),
+                            "supports_aft": caps.get('supports_aft', False),
+                            "supports_ip_config": caps.get(
+                                'supports_ip_config',
+                                False
+                            )
+                        }
             else:
                 result = {
                     "connected": False,
                     "message": "No active connection",
-                    "available_connections": len(connection_manager.get_known_connections())
+                    "available_connections": len(
+                        connection_manager.get_known_connections()
+                    )
                 }
 
             return CallToolResult(
@@ -350,6 +560,129 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> CallToolResult:
                 )]
             )
 
+        elif name == "get_device_capabilities":
+            model = arguments.get("model")
+            if not model:
+                return CallToolResult(
+                    content=[TextContent(
+                        type="text",
+                        text="Error: model parameter is required"
+                    )]
+                )
+
+            capabilities = get_device_capabilities(model)
+            if not capabilities:
+                return CallToolResult(
+                    content=[TextContent(
+                        type="text",
+                        text=f"No capabilities found for device model: {model}"
+                    )]
+                )
+
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=json.dumps(capabilities, indent=2)
+                )]
+            )
+
+        elif name == "authenticate_device":
+            level = arguments.get("level", "1")
+            password = arguments.get("password")
+
+            if not current_connection:
+                return CallToolResult(
+                    content=[TextContent(
+                        type="text",
+                        text="Error: No active connection"
+                    )]
+                )
+
+            try:
+                # Check if device supports authentication levels
+                if hasattr(current_connection, '_known_conn'):
+                    conn = current_connection._known_conn
+                    if conn.model in DEVICE_CAPABILITIES:
+                        caps = DEVICE_CAPABILITIES[conn.model]
+                        supported_levels = caps.get('access_levels', {})
+                        if level not in supported_levels:
+                            return CallToolResult(
+                                content=[TextContent(
+                                    type="text",
+                                    text=(
+                                        f"Warning: Level {level} not in known "
+                                        f"levels for {conn.model}"
+                                    )
+                                )]
+                            )
+
+                # Send authentication command
+                if password:
+                    command = f"ACC {level} {password}"
+                else:
+                    command = f"ACC {level}"
+
+                response = current_connection.send_command(command, 5)
+                return CallToolResult(
+                    content=[TextContent(
+                        type="text",
+                        text=f"Authentication result: {response}"
+                    )]
+                )
+
+            except Exception as e:
+                return CallToolResult(
+                    content=[TextContent(
+                        type="text",
+                        text=f"Authentication failed: {str(e)}"
+                    )]
+                )
+
+        elif name == "check_aft_availability":
+            try:
+                # Try to import AFT modules
+                import sel.aft_shared.ams
+                import sel.aft_shared.common.testing
+            except ImportError as e:
+                return CallToolResult(
+                    content=[TextContent(
+                        type="text",
+                        text=f"AFT modules not available: {str(e)}"
+                    )]
+                )
+
+            # Check if we have an active connection with AFT support
+            aft_supported = False
+            device_info = None
+
+            if (
+                current_connection and
+                hasattr(current_connection, '_known_conn')
+            ):
+                conn = current_connection._known_conn
+                if conn.model in DEVICE_CAPABILITIES:
+                    caps = DEVICE_CAPABILITIES[conn.model]
+                    aft_supported = caps.get('supports_aft', False)
+                    device_info = {
+                        "model": conn.model,
+                        "name": conn.name,
+                        "aft_supported": aft_supported
+                    }
+
+            result = {
+                "aft_modules_available": True,
+                "ams_class_available": hasattr(sel.aft_shared.ams, 'AMS'),
+                "testing_available": True,
+                "current_device": device_info,
+                "aft_capabilities": AFT_CAPABILITIES
+            }
+
+            return CallToolResult(
+                content=[TextContent(
+                    type="text",
+                    text=json.dumps(result, indent=2)
+                )]
+            )
         else:
             raise ValueError(f"Unknown tool: {name}")
 

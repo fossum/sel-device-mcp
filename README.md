@@ -1,6 +1,6 @@
 # sel-device-mcp
 
-An MCP (Model Context Protocol) server to allow AI intelligent access to Schweitzer Engineering Laboratories (SEL) devices. Utilizes telnet and serial communication protocols to interact with connected devices through a REST API interface.
+An MCP (Model Context Protocol) server to allow AI intelligent access to Schweitzer Engineering Laboratories (SEL) devices. Utilizes telnet and serial communication protocols to interact with connected devices.
 
 ## Features
 
