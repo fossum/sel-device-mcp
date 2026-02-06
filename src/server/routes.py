@@ -8,6 +8,8 @@ from pydantic import BaseModel
 
 from ..device.serial_connector import SerialConnector
 from ..device.telnet_connector import TelnetConnector
+from ..device.udp_connector import UdpConnector
+from ..device.tcp_connector import TcpConnector
 from ..device.connector import ConnectionError, TimeoutError
 from ..core.connection_manager import connection_manager
 from ..core.connection_factory import ConnectionFactory
@@ -19,7 +21,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Global connection manager
-current_connection: Optional[Union[SerialConnector, TelnetConnector]] = None
+current_connection: Optional[
+    Union[SerialConnector, TelnetConnector, UdpConnector, TcpConnector]
+] = None
 
 
 class SerialConnectRequest(BaseModel):
@@ -121,6 +125,32 @@ def connect_by_id(request: ConnectByIdRequest):
             }
             logger.info(f"Successfully connected to {known_conn.name} "
                         f"at {host}:{telnet_port}")
+        elif known_conn.connection_type == "tcp":
+            host = request.override_host or known_conn.host
+            tcp_port = request.override_port or known_conn.tcp_port
+            timeout = request.override_timeout or known_conn.timeout
+            connection_info = {
+                "host": host,
+                "tcp_port": tcp_port,
+                "timeout": timeout,
+                "protocol": known_conn.protocol,
+                "stream_type": known_conn.stream_type
+            }
+            logger.info(f"Successfully connected to {known_conn.name} "
+                        f"at {host}:{tcp_port}")
+        elif known_conn.connection_type == "udp":
+            host = request.override_host or known_conn.host
+            udp_port = (request.override_port or known_conn.udp_port)
+            timeout = request.override_timeout or known_conn.timeout
+            connection_info = {
+                "host": host,
+                "udp_port": udp_port,
+                "timeout": timeout,
+                "protocol": known_conn.protocol,
+                "stream_type": known_conn.stream_type
+            }
+            logger.info(f"Successfully connected to {known_conn.name} "
+                        f"at {host}:{udp_port}")
         else:
             port = request.override_port or known_conn.port
             baudrate = request.override_baudrate or known_conn.baudrate

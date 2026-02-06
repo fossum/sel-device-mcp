@@ -20,28 +20,40 @@ class KnownConnection:
     location: str
     common_commands: List[str]
     timeout: float = 10.0
-    
+
+    # Optional protocol metadata
+    protocol: Optional[str] = None
+    stream_type: Optional[str] = None
+    connection_type_override: Optional[str] = None
+
     # Serial connection fields
     port: Optional[str] = None
     baudrate: Optional[int] = None
-    
+
     # Telnet connection fields
     host: Optional[str] = None
     telnet_port: Optional[int] = None
-    
+
+    # UDP connection fields
+    udp_port: Optional[int] = None
+
+    # TCP connection fields
+    tcp_port: Optional[int] = None
+
     # Optional prompts (can be empty)
     prompts: Optional[List[str]] = None
-    
+
     @property
     def connection_type(self) -> str:
         """Determine connection type based on available fields."""
+        if self.connection_type_override:
+            return self.connection_type_override
         if self.host is not None:
             return "telnet"
-        elif self.port is not None:
+        if self.port is not None:
             return "serial"
-        else:
-            return "unknown"
-    
+        return "unknown"
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API responses."""
         result = {
@@ -55,7 +67,7 @@ class KnownConnection:
             "timeout": self.timeout,
             "connection_type": self.connection_type
         }
-        
+
         # Add connection-specific fields
         if self.connection_type == "serial":
             result.update({
@@ -67,11 +79,25 @@ class KnownConnection:
                 "host": self.host,
                 "telnet_port": self.telnet_port
             })
-        
+        elif self.connection_type == "tcp":
+            result.update({
+                "host": self.host,
+                "tcp_port": self.tcp_port,
+                "protocol": self.protocol,
+                "stream_type": self.stream_type
+            })
+        elif self.connection_type == "udp":
+            result.update({
+                "host": self.host,
+                "udp_port": self.udp_port,
+                "protocol": self.protocol,
+                "stream_type": self.stream_type
+            })
+
         # Add prompts if they exist
         if self.prompts:
             result["prompts"] = self.prompts
-            
+
         return result
 
 
@@ -109,8 +135,47 @@ class ConnectionManager:
             # Load known connections
             known_connections = config.get("known_connections", {})
             for conn_id, conn_data in known_connections.items():
+                connection_type = conn_data.get("connection_type")
                 # Determine connection type and extract appropriate fields
-                if "host" in conn_data:
+                if connection_type == "tcp":
+                    port_value = conn_data.get("port")
+                    tcp_port = int(port_value) if port_value else 9005
+                    connection = KnownConnection(
+                        id=conn_id,
+                        name=conn_data.get("name", ""),
+                        description=conn_data.get("description", ""),
+                        device_type=conn_data.get("device_type", "GENERIC"),
+                        model=conn_data.get("model", "Unknown"),
+                        location=conn_data.get("location", "Unknown"),
+                        common_commands=conn_data.get("common_commands", []),
+                        timeout=conn_data.get("timeout", 10.0),
+                        host=conn_data.get("host"),
+                        tcp_port=tcp_port,
+                        protocol=conn_data.get("protocol", "HiPTAP"),
+                        stream_type=conn_data.get("stream_type"),
+                        connection_type_override="tcp",
+                        prompts=conn_data.get("prompts")
+                    )
+                elif connection_type == "udp":
+                    port_value = conn_data.get("port")
+                    udp_port = int(port_value) if port_value else 34566
+                    connection = KnownConnection(
+                        id=conn_id,
+                        name=conn_data.get("name", ""),
+                        description=conn_data.get("description", ""),
+                        device_type=conn_data.get("device_type", "GENERIC"),
+                        model=conn_data.get("model", "Unknown"),
+                        location=conn_data.get("location", "Unknown"),
+                        common_commands=conn_data.get("common_commands", []),
+                        timeout=conn_data.get("timeout", 10.0),
+                        host=conn_data.get("host"),
+                        udp_port=udp_port,
+                        protocol=conn_data.get("protocol", "HiPTAP"),
+                        stream_type=conn_data.get("stream_type"),
+                        connection_type_override="udp",
+                        prompts=conn_data.get("prompts")
+                    )
+                elif "host" in conn_data:
                     # Telnet connection
                     port_value = conn_data.get("port")
                     telnet_port = int(port_value) if port_value else 23
@@ -142,7 +207,7 @@ class ConnectionManager:
                         baudrate=conn_data.get("baudrate", 9600),
                         prompts=conn_data.get("prompts", [">"])
                     )
-                
+
                 self._known_connections[conn_id] = connection
 
             # Load connection profiles
@@ -187,9 +252,16 @@ class ConnectionManager:
 
     def list_connections_by_port(self, port: str) -> List[KnownConnection]:
         """Get all connections using a specific port."""
+        try:
+            port_value = int(port)
+        except ValueError:
+            port_value = None
         return [
             conn for conn in self._known_connections.values()
             if conn.port == port
+            or conn.telnet_port == port_value
+            or conn.udp_port == port_value
+            or conn.tcp_port == port_value
         ]
 
     def add_connection(self, connection: KnownConnection) -> None:

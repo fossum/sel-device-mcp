@@ -193,6 +193,13 @@ device_capabilities:
       <<: *standard_access_levels
     ip_configuration:
       <<: *standard_ip_config
+    protocols:
+      - name: "HiPTAP"
+        port: 9005
+        stream_type: "tcp"
+      - name: "FTP"
+        port: 21
+        stream_type: "ftp"
     testing_capabilities:
       - "Protection testing"
       - "Line monitoring"
@@ -260,6 +267,7 @@ aft_capabilities:
   protocols_supported:
     - "DNP3"
     - "GOOSE"
+    - "HiPTAP"
     - "Modbus"
     - "IEC 61850"
     - "Serial communications"

@@ -7,6 +7,8 @@ from typing import Optional, Union
 
 from ..device.serial_connector import SerialConnector
 from ..device.telnet_connector import TelnetConnector
+from ..device.udp_connector import UdpConnector
+from ..device.tcp_connector import TcpConnector
 from ..device.connector import Connector
 from .connection_manager import KnownConnection
 
@@ -24,8 +26,9 @@ class ConnectionFactory:
         override_port: Optional[str] = None,
         override_baudrate: Optional[int] = None,
         override_telnet_port: Optional[int] = None,
+        override_udp_port: Optional[int] = None,
         override_timeout: Optional[float] = None
-    ) -> Union[SerialConnector, TelnetConnector]:
+    ) -> Union[SerialConnector, TelnetConnector, UdpConnector, TcpConnector]:
         """
         Create appropriate connector based on known connection type.
 
@@ -53,6 +56,20 @@ class ConnectionFactory:
         elif known_conn.connection_type == "serial":
             return cls._create_serial_connector(
                 known_conn, override_port, override_baudrate, override_timeout
+            )
+        elif known_conn.connection_type == "tcp":
+            return cls._create_tcp_connector(
+                known_conn,
+                override_host,
+                override_port,
+                override_timeout
+            )
+        elif known_conn.connection_type == "udp":
+            return cls._create_udp_connector(
+                known_conn,
+                override_host,
+                override_udp_port or override_port,
+                override_timeout
             )
         else:
             raise ValueError(
@@ -136,11 +153,83 @@ class ConnectionFactory:
         )
 
     @classmethod
+    def _create_udp_connector(
+        cls,
+        known_conn: KnownConnection,
+        override_host: Optional[str] = None,
+        override_udp_port: Optional[int] = None,
+        override_timeout: Optional[float] = None
+    ) -> UdpConnector:
+        """Create a UDP connector."""
+
+        host = override_host or known_conn.host
+        udp_port = override_udp_port or known_conn.udp_port
+        timeout = override_timeout or known_conn.timeout
+
+        if not host:
+            raise ValueError(
+                f"Host is required for UDP connection '{known_conn.id}'"
+            )
+        if not udp_port:
+            raise ValueError(
+                f"Port is required for UDP connection '{known_conn.id}'"
+            )
+
+        cls._logger.info(
+            f"Creating UDP connector for {known_conn.name} "
+            f"({host}:{udp_port})"
+        )
+
+        return UdpConnector(
+            host=host,
+            port=int(udp_port),
+            timeout=timeout,
+            stream_type=known_conn.stream_type,
+            protocol=known_conn.protocol
+        )
+
+    @classmethod
+    def _create_tcp_connector(
+        cls,
+        known_conn: KnownConnection,
+        override_host: Optional[str] = None,
+        override_tcp_port: Optional[int] = None,
+        override_timeout: Optional[float] = None
+    ) -> TcpConnector:
+        """Create a TCP connector."""
+
+        host = override_host or known_conn.host
+        tcp_port = override_tcp_port or known_conn.tcp_port
+        timeout = override_timeout or known_conn.timeout
+
+        if not host:
+            raise ValueError(
+                f"Host is required for TCP connection '{known_conn.id}'"
+            )
+        if not tcp_port:
+            raise ValueError(
+                f"Port is required for TCP connection '{known_conn.id}'"
+            )
+
+        cls._logger.info(
+            f"Creating TCP connector for {known_conn.name} "
+            f"({host}:{tcp_port})"
+        )
+
+        return TcpConnector(
+            host=host,
+            port=int(tcp_port),
+            timeout=timeout,
+            stream_type=known_conn.stream_type,
+            protocol=known_conn.protocol
+        )
+
+    @classmethod
     def create_connector_from_params(
         cls,
         connection_type: str,
         **kwargs
-    ) -> Union[SerialConnector, TelnetConnector]:
+    ) -> Union[SerialConnector, TelnetConnector, UdpConnector, TcpConnector]:
         """
         Create connector directly from parameters.
 
@@ -178,6 +267,44 @@ class ConnectionFactory:
                 baudrate=baudrate,
                 timeout=timeout,
                 prompts=prompts
+            )
+
+        elif connection_type == "udp":
+            host = kwargs.get("host")
+            port = kwargs.get("port", 34566)
+            timeout = kwargs.get("timeout", 10.0)
+            stream_type = kwargs.get("stream_type")
+            protocol = kwargs.get("protocol")
+
+            if not host:
+                raise ValueError("Host is required for UDP connection")
+
+            cls._logger.info(f"Creating UDP connector ({host}:{port})")
+            return UdpConnector(
+                host=host,
+                port=int(port),
+                timeout=timeout,
+                stream_type=stream_type,
+                protocol=protocol
+            )
+
+        elif connection_type == "tcp":
+            host = kwargs.get("host")
+            port = kwargs.get("port", 9005)
+            timeout = kwargs.get("timeout", 10.0)
+            stream_type = kwargs.get("stream_type")
+            protocol = kwargs.get("protocol")
+
+            if not host:
+                raise ValueError("Host is required for TCP connection")
+
+            cls._logger.info(f"Creating TCP connector ({host}:{port})")
+            return TcpConnector(
+                host=host,
+                port=int(port),
+                timeout=timeout,
+                stream_type=stream_type,
+                protocol=protocol
             )
 
         else:
