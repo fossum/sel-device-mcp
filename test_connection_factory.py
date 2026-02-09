@@ -162,7 +162,7 @@ def test_factory_error_handling():
             # Missing host/port for telnet and port/baudrate for serial
         )
 
-        connector = ConnectionFactory.create_connector(invalid_conn)
+        ConnectionFactory.create_connector(invalid_conn)
         print("❌ Should have failed with missing fields")
         return False
     except ValueError as e:

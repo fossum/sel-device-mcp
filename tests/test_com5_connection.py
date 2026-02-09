@@ -75,7 +75,7 @@ def test_send_command():
 def test_disconnect():
     """Test disconnecting from the device."""
     try:
-        response = requests.post(f"{BASE_URL}/disconnect")
+        response = requests.delete(f"{BASE_URL}/disconnect")
         print(f"Disconnect Status: {response.status_code}")
         print(f"Disconnect Response: {json.dumps(response.json(), indent=2)}")
         return response.json()
@@ -112,9 +112,9 @@ def main():
     print("=" * 50)
 
 if __name__ == "__main__":
-    print("Make sure the FastAPI server is running on http://localhost:8002")
+    print("Make sure the FastAPI server is running on http://localhost:8000")
     print("You can start it with:")
-    print("uvicorn src.server.main:app --host 127.0.0.1 --port 8002 --reload")
+    print("uvicorn src.server.main:app --host 127.0.0.1 --port 8000 --reload")
     print()
 
     # Wait a moment for user to read

@@ -1,16 +1,52 @@
 # SEL Device PowerShell Helper Functions
 # Usage: . .\sel-device-helper.ps1
 
-$BaseUrl = "http://localhost:8000"
+if (-not (Get-Variable -Name BaseUrl -Scope Script -ErrorAction SilentlyContinue)) {
+    # Allow overriding via environment variable or pre-defined $BaseUrl; default to localhost.
+    $envBaseUrl = $env:SEL_DEVICE_BASEURL
+    if ([string]::IsNullOrWhiteSpace($envBaseUrl)) {
+        $BaseUrl = "http://localhost:8000"
+    }
+    else {
+        $BaseUrl = $envBaseUrl
+    }
+}
 
 function Start-SELServer {
     <#
     .SYNOPSIS
     Starts the SEL Device REST API server
+
+    .PARAMETER RepoPath
+    Optional path to the SEL Device REST API server repository. If not provided,
+    defaults to the directory containing this script.
     #>
+    param(
+        [string]$RepoPath
+    )
+
     Write-Host "Starting SEL Device Server..." -ForegroundColor Green
-    Set-Location "c:\development\ericfoss\sel-device-mcp"
-    pipenv run uvicorn src.server.main:app --host 127.0.0.1 --port 8000
+
+    if (-not $RepoPath) {
+        # Default to the directory where this script resides
+        $scriptPath = $MyInvocation.MyCommand.Path
+        $RepoPath = Split-Path -Parent $scriptPath
+    }
+
+    if (-not (Test-Path -Path $RepoPath -PathType Container)) {
+        Write-Error "The specified repository path '$RepoPath' does not exist."
+        return
+    }
+
+    Set-Location $RepoPath
+
+    $pipenvCommand = Get-Command pipenv -ErrorAction SilentlyContinue
+    if (-not $pipenvCommand) {
+        Write-Error "The 'pipenv' command was not found. Please install pipenv or start the server manually."
+        return
+    }
+
+    & $pipenvCommand.Source run uvicorn src.server.main:app --host 127.0.0.1 --port 8000
 }
 
 function Get-SELConnections {

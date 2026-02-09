@@ -27,7 +27,7 @@ The enhanced server is available alongside the standard server:
     },
     "sel-mcp-device-server-enhanced": {
       "command": "C:/development/ericfoss/sel-device-mcp/.venv/Scripts/python.exe",
-      "args": ["-m", "src.mcp_server.enhanced_server"],
+      "args": ["-m", "src.mcp_server.server"],
       "cwd": "c:\\development\\ericfoss\\sel-device-mcp"
     }
   }

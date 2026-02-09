@@ -19,7 +19,7 @@ An MCP (Model Context Protocol) server to allow AI intelligent access to Schweit
 ### Basic Connection
 
 - `POST /connect` - Connect to a serial device (default: COM5, 9600 baud)
-- `POST /disconnect` - Disconnect from the current device
+- `DELETE /disconnect` - Disconnect from the current device
 - `POST /command` - Send commands to connected device
 - `GET /status` - Check current connection status
 
@@ -144,7 +144,7 @@ response = requests.get("http://localhost:8000/status")
 print(f"Status: {response.json()}")
 
 # Disconnect
-response = requests.post("http://localhost:8000/disconnect")
+response = requests.delete("http://localhost:8000/disconnect")
 print(f"Disconnect: {response.json()}")
 ```
 

@@ -15,11 +15,12 @@ class SerialConnector(Connector):
 
     _logger = logging.getLogger(__name__)
 
-    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 10):
+    def __init__(self, port: str, baudrate: int = 9600, timeout: float = 10, prompts: Optional[list[str]] = None):
         self.port = port
         self.baudrate = baudrate
         self.timeout = timeout
         self.serial = None
+        self.prompts = prompts
 
     def connect(self) -> bool:
         self.serial = SerialStream(
