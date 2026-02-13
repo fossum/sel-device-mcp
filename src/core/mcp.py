@@ -1,5 +1,6 @@
 from src.device.connector import Connector
 
+
 class MCP:
     def __init__(self, connector: Connector):
         self.connector = connector
